@@ -10,6 +10,8 @@
 #
 #   @output             csf-firewall-v<version>.zip
 #                       csf-firewall-v<version>.tgz
+#                       csf-firewall_<version>_all.deb   (Debian / Ubuntu)
+#                       csf.zip, csf.tgz, csf-firewall.deb (fixed names for "latest" links)
 #                       SHA256SUMS
 # #
 
@@ -108,7 +110,7 @@ jobs:
             - name: '🧪 Install Check Dependencies'
               run: |
                   sudo apt-get -qq update
-                  sudo apt-get -qq install -y libwww-perl liblwp-protocol-https-perl libnet-ip-perl iptables ipset gcc zip >/dev/null
+                  sudo apt-get -qq install -y libwww-perl liblwp-protocol-https-perl libnet-ip-perl iptables ipset gcc zip dpkg-dev lintian >/dev/null
 
             - name: '🧪 Check › Perl Syntax'
               run: |
@@ -164,7 +166,49 @@ jobs:
                   cp "${PACKAGE}.zip" csf.zip
                   cp "${PACKAGE}.tgz" csf.tgz
 
-                  sha256sum "${PACKAGE}.zip" "${PACKAGE}.tgz" csf.zip csf.tgz > SHA256SUMS
+            # #
+            #   Debian / Ubuntu package
+            # #
+
+            - name: '📦 Build .deb'
+              id: deb
+              env:
+                  VERSION: ${{ steps.version.outputs.version }}
+              run: |
+                  DEB=$(bash extras/scripts/build-deb.sh "${VERSION}" .)
+                  cp "${DEB}" csf-firewall.deb
+                  echo "file=${DEB#./}" >> "$GITHUB_OUTPUT"
+
+                  dpkg-deb --info "${DEB}"
+                  # Errors fail the release; warnings (bundled fonts, upstream changelog format) are informational
+                  lintian --fail-on error "${DEB}"
+
+            - name: '🧪 Test .deb install / upgrade / purge'
+              env:
+                  DEB: ${{ steps.deb.outputs.file }}
+              run: |
+                  export DEBIAN_FRONTEND=noninteractive
+                  sudo -E apt-get install -y -qq "./${DEB}"
+                  dpkg -s csf-firewall | grep -E '^(Status|Version)'
+                  test -x /usr/sbin/csf
+                  test -f /etc/csf/csf.conf
+                  sudo /usr/sbin/csf -v
+
+                  # reinstall = upgrade path; the CSF installer must keep changed settings
+                  sudo sed -i 's/^LF_SSHD = .*/LF_SSHD = "3"/' /etc/csf/csf.conf
+                  sudo -E apt-get install -y -qq --reinstall "./${DEB}"
+                  grep -q '^LF_SSHD = "3"' /etc/csf/csf.conf
+
+                  sudo -E apt-get purge -y -qq csf-firewall
+                  test ! -e /etc/csf
+                  test ! -e /usr/sbin/csf
+
+            - name: '🔐 Checksums'
+              env:
+                  PACKAGE: ${{ steps.version.outputs.package }}
+                  DEB: ${{ steps.deb.outputs.file }}
+              run: |
+                  sha256sum "${PACKAGE}.zip" "${PACKAGE}.tgz" csf.zip csf.tgz "${DEB}" csf-firewall.deb > SHA256SUMS
                   cat SHA256SUMS
 
             # #
@@ -176,10 +220,11 @@ jobs:
                   GH_TOKEN: ${{ github.token }}
                   VERSION: ${{ steps.version.outputs.version }}
                   PACKAGE: ${{ steps.version.outputs.package }}
+                  DEB: ${{ steps.deb.outputs.file }}
                   PRERELEASE: ${{ inputs.PRERELEASE }}
                   DRAFT: ${{ inputs.DRAFT }}
               run: |
-                  args=( "${VERSION}" "${PACKAGE}.zip" "${PACKAGE}.tgz" csf.zip csf.tgz SHA256SUMS
+                  args=( "${VERSION}" "${PACKAGE}.zip" "${PACKAGE}.tgz" csf.zip csf.tgz "${DEB}" csf-firewall.deb SHA256SUMS
                          --title "${PROJECT_NAME} v${VERSION}"
                          --generate-notes
                          --target "${GITHUB_SHA}" )
@@ -195,6 +240,7 @@ jobs:
                       echo
                       echo "- ${PACKAGE}.zip"
                       echo "- ${PACKAGE}.tgz"
+                      echo "- ${DEB}"
                       echo "- SHA256SUMS"
                       echo
                       echo "https://github.com/${GITHUB_REPOSITORY}/releases/tag/${VERSION}"

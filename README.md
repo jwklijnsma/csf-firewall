@@ -374,10 +374,28 @@ To install the latest version of CSF manually, run the following commands:
 
 #### Step 2: Download
 
-To download and install CSF, you have two options. Both options give you the latest version of our CSF archive. 
+To download and install CSF, you have three options. All of them give you the latest release from this fork.
 
-1. [Download .zip using wget or curl](#download-direct)
-2. [Download .zip using get.sh script](#download-getsh)
+1. [Install the .deb package (Debian / Ubuntu)](#install-deb)
+2. [Download .zip using wget or curl](#download-direct)
+3. [Download .zip using get.sh script](#download-getsh)
+
+<br />
+
+##### Install Deb
+
+On Debian and Ubuntu you can install CSF as a package. `apt` installs all dependencies and runs the CSF installer for you, so you can skip the extract and install steps below:
+
+```shell
+wget https://github.com/jwklijnsma/csf-firewall/releases/latest/download/csf-firewall.deb
+sudo apt install ./csf-firewall.deb
+```
+
+After installing, CSF is in `TESTING` mode. Edit `/etc/csf/csf.conf`, set `TESTING = "0"` and run `sudo csf -ra`.
+
+- Upgrade: install a newer `.deb` the same way; your settings in `/etc/csf/csf.conf` are kept.
+- `sudo apt remove csf-firewall` stops and disables CSF but keeps `/etc/csf`.
+- `sudo apt purge csf-firewall` removes CSF completely, including `/etc/csf`.
 
 <br />
 

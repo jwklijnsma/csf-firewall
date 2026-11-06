@@ -48,6 +48,7 @@ use ConfigServer::RBLCheck;
 use ConfigServer::GetEthDev;
 use ConfigServer::Sendmail;
 use ConfigServer::LookUpIP qw(iplookup);
+use ConfigServer::Packages;
 
 umask( 0177 );
 
