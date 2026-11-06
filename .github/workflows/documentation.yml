@@ -190,7 +190,7 @@ jobs:
 
             - name: >-
                   ☑️ Checkout
-              uses: actions/checkout@v7
+              uses: actions/checkout@v7.0.1
               with:
                   fetch-depth: 0
 
@@ -200,7 +200,7 @@ jobs:
 
             - name: >-
                   🔄 Load Job
-              uses: qoomon/actions--context@v4
+              uses: qoomon/actions--context@v4.0.3
               id: 'context'
 
             # #
@@ -310,9 +310,9 @@ jobs:
 
             - name: >-
                 🐍 Setup Python
-              uses: actions/setup-python@v5
+              uses: actions/setup-python@v5.6.0
               with:
-                  python-version: 3.x
+                  python-version: 3.15.2
 
             # #
             #   Build Documentation
@@ -345,7 +345,7 @@ jobs:
 
             - name: >-
                 💽 Deploy
-              uses: peaceiris/actions-gh-pages@v4
+              uses: peaceiris/actions-gh-pages@v4.1.0
               with:
                   personal_token: ${{ secrets.ADMINSERV_TOKEN_CL }}
                   publish_dir: "${{ env.WORKING_DIR }}"

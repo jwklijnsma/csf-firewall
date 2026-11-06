@@ -130,7 +130,7 @@ jobs:
 
             - name: >-
                   ☑️ Checkout
-              uses: actions/checkout@v7
+              uses: actions/checkout@v7.0.1
               with:
                   fetch-depth: 0
 
@@ -140,7 +140,7 @@ jobs:
 
             - name: >-
                   🔄 Load Job
-              uses: qoomon/actions--context@v4
+              uses: qoomon/actions--context@v4.0.3
               id: 'context'
 
             # #
@@ -282,7 +282,7 @@ jobs:
             # #
 
             - name: '☑️ Checkout'
-              uses: actions/checkout@v7
+              uses: actions/checkout@v7.0.1
               with:
                   fetch-depth: 0
 
@@ -292,7 +292,7 @@ jobs:
 
             - name: >-
                   🔄 Load Job
-              uses: qoomon/actions--context@v4
+              uses: qoomon/actions--context@v4.0.3
               id: 'context'
 
             # #
@@ -737,7 +737,7 @@ jobs:
 
             - name: '🧱 Geographical › GeoLite2 (Cache)'
               id: task_blocklist_geographical_generate_cache
-              uses: actions/cache@v6
+              uses: actions/cache@v6.1.0
               if: steps.task_blocklist_geographical_generate_setup.outcome == 'success'
               with:
                   path: .github/.temp
@@ -831,7 +831,7 @@ jobs:
 
             - name: "🎁 Generate › Upload Artifact"
               id: task_blocklist_generate_artifact_upload
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v4.6.2
               with:
                   name: blocklist-latest
                   path: ./
@@ -855,7 +855,7 @@ jobs:
             # #
 
             - name: '☑️ Commit › Checkout'
-              uses: actions/checkout@v7
+              uses: actions/checkout@v7.0.1
               with:
                   fetch-depth: 0
 
@@ -933,7 +933,7 @@ jobs:
 
             - name: "🎁 Commit › Download Artifact"
               id: task_commit_artifact_download
-              uses: actions/download-artifact@v4
+              uses: actions/download-artifact@v4.3.0
               with:
                   name: blocklist-latest
                   path: ./
@@ -970,7 +970,7 @@ jobs:
 
             - name: "📦 Commit › GPG Key"
               id: task_commit_gpg
-              uses: crazy-max/ghaction-import-gpg@v6
+              uses: crazy-max/ghaction-import-gpg@v6.3.0
               with:
                   gpg_private_key: ${{ secrets.ADMINSERV_GPG_KEY_ASC }}
                   passphrase: ${{ secrets.ADMINSERV_GPG_PASSPHRASE }}
@@ -983,7 +983,7 @@ jobs:
 
             - name: "📦 Commit › Execute"
               id: task_commit_execute
-              uses: stefanzweifel/git-auto-commit-action@v5
+              uses: stefanzweifel/git-auto-commit-action@v5.2.0
               with:
                   commit_message: ${{ env.COMMIT_MESSAGE }}
                   commit_author: "${{ steps.task_commit_gpg.outputs.name }} <${{ steps.task_commit_gpg.outputs.email }}>"

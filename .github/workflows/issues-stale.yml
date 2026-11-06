@@ -207,7 +207,7 @@ jobs:
             # #
 
             - name: '☑️ Checkout'
-              uses: actions/checkout@v7
+              uses: actions/checkout@v7.0.1
               with:
                   fetch-depth: 0
 
@@ -217,7 +217,7 @@ jobs:
 
             - name: >-
                   🔄 Load Job
-              uses: qoomon/actions--context@v4
+              uses: qoomon/actions--context@v4.0.3
               id: 'context'
 
             # #
@@ -332,7 +332,7 @@ jobs:
 
             - name: >-
                   🎫 Labels › Verify Existing
-              uses: actions/github-script@v9
+              uses: actions/github-script@v9.0.0
               with:
                   github-token: ${{ secrets.ADMINSERV_TOKEN_CL || github.token }}
                   script: |
@@ -386,7 +386,7 @@ jobs:
             # #
 
             - name: '☑️ Checkout'
-              uses: actions/checkout@v7
+              uses: actions/checkout@v7.0.1
               with:
                   fetch-depth: 0
 
@@ -396,7 +396,7 @@ jobs:
 
             - name: >-
                   🔄 Load Job
-              uses: qoomon/actions--context@v4
+              uses: qoomon/actions--context@v4.0.3
               id: 'context'
 
             # #
@@ -507,7 +507,7 @@ jobs:
 
             - name: >-
                   🎫 Labels › Check
-              uses: actions/github-script@v9
+              uses: actions/github-script@v9.0.0
               with:
                   github-token: ${{ secrets.ADMINSERV_TOKEN_CL || github.token }}
                   script: |
@@ -994,7 +994,7 @@ jobs:
 
             - name: >-
                   💤 Stale › Check Condition
-              uses: actions/stale@v9
+              uses: actions/stale@v9.1.0
               with:
                   repo-token: ${{ secrets.ADMINSERV_TOKEN_CL || github.token }}
                   stale-issue-message: |
@@ -1034,7 +1034,7 @@ jobs:
 
             - name: >-
                   🔒 Inactive › Lock
-              uses: dessant/lock-threads@v5
+              uses: dessant/lock-threads@v5.0.1
               with:
                   github-token: ${{ secrets.ADMINSERV_TOKEN_CL || github.token }}
                   exclude-any-issue-labels: '${{ env.LABEL_AC_REVIEW }},${{ env.LABEL_ACCEPTED }},${{ env.LABEL_REVIEW }},${{ env.LABEL_PENDING }},${{ env.LABEL_BUG }},${{ env.LABEL_DEPENDENCY }},${{ env.LABEL_DOCS }},${{ env.LABEL_FEATURE }},${{ env.LABEL_GIT }},${{ env.LABEL_ROADMAP }},${{ env.LABEL_INTERNAL }}'

@@ -115,7 +115,7 @@ jobs:
             # #
 
             - name: '☑️ Checkout'
-              uses: actions/checkout@v7
+              uses: actions/checkout@v7.0.1
               with:
                   fetch-depth: 0
 
@@ -125,7 +125,7 @@ jobs:
 
             - name: >-
                   🔄 Load Job
-              uses: qoomon/actions--context@v4
+              uses: qoomon/actions--context@v4.0.3
               id: 'context'
 
             # #
@@ -234,7 +234,7 @@ jobs:
 
             - name: >-
                 ⚙️ Deployments › Clean
-              uses: Aetherinox/delete-deploy-env-action@v3
+              uses: Aetherinox/delete-deploy-env-action@3.1.0
               with:
                   token: ${{ secrets.SELF_TOKEN_CL }}
                   environment: '${{ env.DEPLOYMENT_ENV }}'
