@@ -190,18 +190,19 @@ jobs:
                   export DEBIAN_FRONTEND=noninteractive
                   sudo -E apt-get install -y -qq "./${DEB}"
                   dpkg -s csf-firewall | grep -E '^(Status|Version)'
-                  test -x /usr/sbin/csf
-                  test -f /etc/csf/csf.conf
+                  # csf installs root-only (0700), so check as root
+                  sudo test -x /usr/sbin/csf
+                  sudo test -f /etc/csf/csf.conf
                   sudo /usr/sbin/csf -v
 
                   # reinstall = upgrade path; the CSF installer must keep changed settings
                   sudo sed -i 's/^LF_SSHD = .*/LF_SSHD = "3"/' /etc/csf/csf.conf
                   sudo -E apt-get install -y -qq --reinstall "./${DEB}"
-                  grep -q '^LF_SSHD = "3"' /etc/csf/csf.conf
+                  sudo grep -q '^LF_SSHD = "3"' /etc/csf/csf.conf
 
                   sudo -E apt-get purge -y -qq csf-firewall
-                  test ! -e /etc/csf
-                  test ! -e /usr/sbin/csf
+                  sudo test ! -e /etc/csf
+                  sudo test ! -e /usr/sbin/csf
 
             - name: '🔐 Checksums'
               env:
