@@ -191,7 +191,7 @@ jobs:
             # #
 
             - name: '☑️ Checkout'
-              uses: actions/checkout@v7
+              uses: actions/checkout@v7.0.1
               with:
                   fetch-depth: 0
 
@@ -201,7 +201,7 @@ jobs:
 
             - name: >-
                   🔄 Load Job
-              uses: qoomon/actions--context@v4
+              uses: qoomon/actions--context@v4.0.3
               id: 'context'
 
             # #
@@ -311,7 +311,7 @@ jobs:
             - name: >-
                   🏷️ Verify Existing Labels
               id: task_label_create_verify
-              uses: actions/github-script@v9
+              uses: actions/github-script@v9.0.0
               with:
                   github-token: ${{ secrets.ADMINSERV_TOKEN_CL || github.token }}
                   script: |
@@ -365,7 +365,7 @@ jobs:
             # #
 
             - name: '☑️ Checkout'
-              uses: actions/checkout@v7
+              uses: actions/checkout@v7.0.1
               with:
                   fetch-depth: 0
 
@@ -375,7 +375,7 @@ jobs:
 
             - name: >-
                   🔄 Load Job
-              uses: qoomon/actions--context@v4
+              uses: qoomon/actions--context@v4.0.3
               id: 'context'
 
             # #
@@ -486,7 +486,7 @@ jobs:
 
             - name: >-
                   🏷️ Get Issue Title
-              uses: actions/github-script@v9
+              uses: actions/github-script@v9.0.0
               id: task_get_title
               with:
                   github-token: ${{ secrets.ADMINSERV_TOKEN_CL || github.token }}
@@ -521,7 +521,7 @@ jobs:
 
             - name: >-
                   🏷️ ${{ env.PREFIX_BUG }} › Assignment
-              uses: actions/github-script@v9
+              uses: actions/github-script@v9.0.0
               id: task_issues_bugs
               with:
                   github-token: ${{ secrets.ADMINSERV_TOKEN_CL || github.token }}
@@ -693,7 +693,7 @@ jobs:
 
             - name: >-
                   🏷️ ${{ env.PREFIX_FEATURE }} › Assignment
-              uses: actions/github-script@v9
+              uses: actions/github-script@v9.0.0
               id: task_issues_features
               with:
                   github-token: ${{ secrets.ADMINSERV_TOKEN_CL || github.token }}
@@ -866,7 +866,7 @@ jobs:
 
             - name: >-
                   🏷️ ${{ env.PREFIX_ROADMAP }} › Assignment
-              uses: actions/github-script@v9
+              uses: actions/github-script@v9.0.0
               id: task_issues_roadmap
               with:
                   github-token: ${{ secrets.ADMINSERV_TOKEN_CL || github.token }}
@@ -1045,7 +1045,7 @@ jobs:
 
             - name: >-
                   🏷️ ${{ env.PREFIX_URGENT }} › Assignment
-              uses: actions/github-script@v9
+              uses: actions/github-script@v9.0.0
               id: task_issues_urgent
               with:
                   github-token: ${{ secrets.ADMINSERV_TOKEN_CL || github.token }}
@@ -1223,7 +1223,7 @@ jobs:
             - name: >-
                   ☑️ Prepare
               id: issues-labels-check-checkout
-              uses: actions/checkout@v7
+              uses: actions/checkout@v7.0.1
               with:
                   fetch-depth: 0
 
@@ -1235,7 +1235,7 @@ jobs:
 
             - name: >-
                   👄 Search Phrases
-              uses: actions/github-script@v9
+              uses: actions/github-script@v9.0.0
               with:
                   github-token: ${{ secrets.ADMINSERV_TOKEN_CL || github.token }}
                   script: |
@@ -1317,7 +1317,7 @@ jobs:
 
             - name: >-
                   ✍️ Set Assignees
-              uses: actions/github-script@v9
+              uses: actions/github-script@v9.0.0
               with:
                   github-token: ${{ secrets.ADMINSERV_TOKEN_CL || github.token }}
                   script: |

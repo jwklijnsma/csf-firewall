@@ -226,7 +226,7 @@ jobs:
             - name: >-
                   ☑️ Checkout
               if: steps.pr_scan_prerequisites.outputs.PRECHECK_RESULT == 'run'
-              uses: actions/checkout@v7
+              uses: actions/checkout@v7.0.1
               with:
                   fetch-depth: 0
 
@@ -237,7 +237,7 @@ jobs:
             - name: >-
                   🔄 Load Job
               if: steps.pr_scan_prerequisites.outputs.PRECHECK_RESULT == 'run'
-              uses: qoomon/actions--context@v4
+              uses: qoomon/actions--context@v4.0.3
               id: 'context'
 
             # #
@@ -354,7 +354,7 @@ jobs:
             - name: >-
                   🎫 Labels › Verify Existing
               if: steps.pr_scan_prerequisites.outputs.PRECHECK_RESULT == 'run'
-              uses: actions/github-script@v9
+              uses: actions/github-script@v9.0.0
               with:
                   github-token: ${{ secrets.ADMINSERV_TOKEN_CL || github.token }}
                   script: |
@@ -395,7 +395,7 @@ jobs:
                   #️⃣ Pull-Request ID › Set
               id: task_prscan_issue_num_set
               if: steps.pr_scan_prerequisites.outputs.PRECHECK_RESULT == 'run'
-              uses: actions/github-script@v9
+              uses: actions/github-script@v9.0.0
               with:
                   github-token: ${{ secrets.ADMINSERV_TOKEN_CL || github.token }}
                   script: |
@@ -441,7 +441,7 @@ jobs:
 
             - name: >-
                   ☑️ Checkout
-              uses: actions/checkout@v7
+              uses: actions/checkout@v7.0.1
               if: |
                   steps.pr_scan_prerequisites.outputs.PRECHECK_RESULT == 'run' &&
                   (
@@ -465,7 +465,7 @@ jobs:
             - name: >-
                   ⚙️ Setup Node
               if: steps.pr_scan_prerequisites.outputs.PRECHECK_RESULT == 'run'
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v4.4.0
 
             # #
             #     PR Scan › Get List of Changed Files
@@ -480,7 +480,7 @@ jobs:
                   📄 Get changed files
               id: task_prscan_changed_files_get
               if: steps.pr_scan_prerequisites.outputs.PRECHECK_RESULT == 'run'
-              uses: tj-actions/changed-files@v46
+              uses: tj-actions/changed-files@v46.0.5
               with:
                   separator: ","
 
@@ -523,7 +523,7 @@ jobs:
             - name: >-
                   ☑️ Run Autocheck
               if: steps.pr_scan_prerequisites.outputs.PRECHECK_RESULT == 'run'
-              uses: actions/github-script@v9
+              uses: actions/github-script@v9.0.0
               with:
                   github-token: ${{ secrets.ADMINSERV_TOKEN_CL }}
                   script: |
