@@ -1,0 +1,25 @@
+Package: csf-firewall
+Architecture: all
+Version: 15.11.4
+Priority: optional
+Section: net
+Maintainer: Jan Wiebe Klijnsma <janwiebek@gmail.com>
+Installed-Size: 21224
+Depends: perl, iptables, ipset, libwww-perl, liblwp-protocol-https-perl, libio-socket-ssl-perl, libnet-ssleay-perl, libio-socket-inet6-perl, libsocket6-perl, libnet-libidn-perl | libnet-libidn2-perl, libjson-perl, libtime-hires-perl | perl (>= 5.8), wget | curl, procps
+Recommends: dnsutils, libcrypt-ssleay-perl, libgd-graph-perl, unzip, sendmail-bin | default-mta | mail-transport-agent
+Suggests: gcc
+Filename: ./csf-firewall_15.11.4_all.deb
+Size: 1367184
+MD5sum: 8fe06ebdbac895766890057f108958f0
+SHA1: 19cca030d1d7bbd46c11c4a97886ad4c71114f19
+SHA256: 7f5701615e8f89bcebb67f8be7b846f35cccfb2bdedebc9520c706e916ef1b74
+SHA512: 3b29ea9d9a3c213708f5728be20bec047f59e734587260ea1f1a985c8e3ecd733b4099c6c840e25892920a1ad2947216d137e5f142e5f15794a5aea16770321d
+Homepage: https://github.com/jwklijnsma/csf-firewall
+Description: ConfigServer Security & Firewall (CSF) and Login Failure Daemon
+ CSF is a stateful packet inspection firewall, login/intrusion detection
+ and security application for Linux servers, built on iptables/ipset.
+ .
+ This package runs the regular CSF installer. After installation CSF is
+ in TESTING mode: review /etc/csf/csf.conf, set TESTING = "0" and run
+ "csf -ra" to activate it.
+

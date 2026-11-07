@@ -1,0 +1,23 @@
+Architectures: all amd64 arm64 armhf i386 ppc64el s390x riscv64
+Codename: stable
+Date: Sat, 07 Nov 2026 10:11:09 +0000
+Description: ConfigServer Security & Firewall (jwklijnsma fork)
+Label: csf-firewall
+Origin: csf-firewall
+Suite: stable
+MD5Sum:
+ 07ace2b6570f853211bd4fb6f42f0023             1366 Packages
+ c6c115347f9384d7686a7b3ed2d506c8              847 Packages.gz
+ ac6a4fa6f12dcc7c7a35ef93f29fe045              238 Release
+SHA1:
+ 502d57524b4785ed3d563a8ae1c82bccfcd5f79e             1366 Packages
+ 0b90914503f71842ebefae1115ffefc610079c59              847 Packages.gz
+ 29af05c688553e9a5e4c9fb2e7d40e749124495e              238 Release
+SHA256:
+ aa86682b1bc31cf06e2371638e0a21341d9780394df169aa5a88455e2d9b472d             1366 Packages
+ f87928ae0340b939b718eeb0841d7f05a33250a8526645e7417068d6610c8d2e              847 Packages.gz
+ 7c96cae34c61f0004a495b63787ae1c2c9ea0370e6c685e48d6c205ffd574de9              238 Release
+SHA512:
+ a31377a3b03ab44f90faefd42c782b239ddd2bf841749d133166e45e2cfcb602cbc06465c46c51c07b15b81b9204a05811aafd9f64de3f31ded929ecf894aa16             1366 Packages
+ 315cd103807e2e8701b908c29081b940c125e86a4c94403a3cf7357fefcbe7ea9b1038be57d15a5d1543ca3261048a33fcce64263ae821a4a66ec0ab63c781cd              847 Packages.gz
+ 1d60a3f729261e0de46b32545b08b2475e305ed444a994d02cdbe863b8e2ef465eb81c25f7e3a9fd20b0d0f62dedf9e539f2c706f8b33b693662e5b8ecb15f8c              238 Release
