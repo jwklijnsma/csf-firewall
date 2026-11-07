@@ -393,7 +393,7 @@ sudo apt install ./csf-firewall.deb
 
 After installing, CSF is in `TESTING` mode. Edit `/etc/csf/csf.conf`, set `TESTING = "0"` and run `sudo csf -ra`.
 
-- Upgrade: install a newer `.deb` the same way; your settings in `/etc/csf/csf.conf` are kept.
+- Updates: the package adds the csf-firewall APT repository, so new releases arrive with your normal `sudo apt-get update && sudo apt-get upgrade`. Your settings in `/etc/csf/csf.conf` are kept.
 - `sudo apt remove csf-firewall` stops and disables CSF but keeps `/etc/csf`.
 - `sudo apt purge csf-firewall` removes CSF completely, including `/etc/csf`.
 

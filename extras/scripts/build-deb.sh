@@ -11,6 +11,12 @@
 #
 #                       apt remove   → stops and disables csf/lfd; files and /etc/csf are kept
 #                       apt purge    → full uninstall, including /etc/csf and /var/lib/csf
+#
+#   @apt                The package also installs /etc/apt/sources.list.d/csf-firewall.sources so
+#                       "apt-get update && apt-get upgrade" installs new releases.
+#                       APT_KEYRING=<binary keyring>  → repo is verified with that key (Signed-By)
+#                       not set                      → repo is trusted over HTTPS only (Trusted: yes)
+#                       APT_REPO_URL overrides the repository URL.
 # #
 
 set -euo pipefail
@@ -77,10 +83,42 @@ if [ -f "${ROOT}/src/changelog.txt" ]; then
 fi
 
 # #
+#   APT source, so apt-get upgrade picks up new releases
+# #
+
+APT_REPO_URL="${APT_REPO_URL:-https://raw.githubusercontent.com/jwklijnsma/csf-firewall/dist/apt/}"
+mkdir -p "${PKGROOT}/etc/apt/sources.list.d"
+
+if [ -n "${APT_KEYRING:-}" ]; then
+    mkdir -p "${PKGROOT}/usr/share/keyrings"
+    install -m 0644 "${APT_KEYRING}" "${PKGROOT}/usr/share/keyrings/csf-firewall.gpg"
+    APT_AUTH="Signed-By: /usr/share/keyrings/csf-firewall.gpg"
+else
+    APT_AUTH="Trusted: yes"
+fi
+
+cat > "${PKGROOT}/etc/apt/sources.list.d/csf-firewall.sources" <<SRCEOF
+# csf-firewall releases, installed by the csf-firewall package.
+# Remove this file (or purge the package) to stop receiving updates via apt.
+Types: deb
+URIs: ${APT_REPO_URL}
+Suites: ./
+${APT_AUTH}
+SRCEOF
+chmod 0644 "${PKGROOT}/etc/apt/sources.list.d/csf-firewall.sources"
+
+# Third-party packages ship their own APT source (like Chrome and VS Code); the rule is meant
+# for packages in the Debian archive, so override it for this package.
+mkdir -p "${PKGROOT}/usr/share/lintian/overrides"
+echo "csf-firewall: package-installs-apt-sources [etc/apt/sources.list.d/csf-firewall.sources]" \
+    > "${PKGROOT}/usr/share/lintian/overrides/csf-firewall"
+chmod 0644 "${PKGROOT}/usr/share/lintian/overrides/csf-firewall"
+
+# #
 #   Control
 # #
 
-INSTALLED_SIZE="$(du -sk "${PKGROOT}/usr" | cut -f1)"
+INSTALLED_SIZE="$(du -sk --exclude=DEBIAN "${PKGROOT}" | cut -f1)"
 
 cat > "${PKGROOT}/DEBIAN/control" <<EOF
 Package: ${PKG}
@@ -189,6 +227,8 @@ exit 0
 EOF
 
 chmod 0755 "${PKGROOT}/DEBIAN/postinst" "${PKGROOT}/DEBIAN/prerm" "${PKGROOT}/DEBIAN/postrm"
+
+echo "/etc/apt/sources.list.d/csf-firewall.sources" > "${PKGROOT}/DEBIAN/conffiles"
 
 # #
 #   Build

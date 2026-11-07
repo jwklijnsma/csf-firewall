@@ -110,7 +110,7 @@ jobs:
             - name: '🧪 Install Check Dependencies'
               run: |
                   sudo apt-get -qq update
-                  sudo apt-get -qq install -y libwww-perl liblwp-protocol-https-perl libnet-ip-perl iptables ipset gcc zip dpkg-dev lintian >/dev/null
+                  sudo apt-get -qq install -y libwww-perl liblwp-protocol-https-perl libnet-ip-perl iptables ipset gcc zip dpkg-dev lintian apt-utils >/dev/null
 
             - name: '🧪 Check › Perl Syntax'
               run: |
@@ -170,11 +170,30 @@ jobs:
             #   Debian / Ubuntu package
             # #
 
+            # #
+            #   The package installs an APT source so "apt-get upgrade" gets new releases.
+            #   With secrets.APT_SIGNING_KEY (ASCII-armored private GPG key, no passphrase)
+            #   the repository is signed and the package ships the public key (Signed-By).
+            #   Without it, clients trust the repository over HTTPS only (Trusted: yes).
+            # #
+
             - name: '📦 Build .deb'
               id: deb
               env:
                   VERSION: ${{ steps.version.outputs.version }}
+                  APT_SIGNING_KEY: ${{ secrets.APT_SIGNING_KEY }}
               run: |
+                  if [ -n "${APT_SIGNING_KEY}" ]; then
+                      export GNUPGHOME="$(mktemp -d)"
+                      printf '%s\n' "${APT_SIGNING_KEY}" | gpg --batch --quiet --import
+                      gpg --batch --export > "${RUNNER_TEMP}/csf-firewall.gpg"
+                      rm -rf "${GNUPGHOME}"; unset GNUPGHOME
+                      export APT_KEYRING="${RUNNER_TEMP}/csf-firewall.gpg"
+                      echo "APT repository: signed"
+                  else
+                      echo "::notice::APT repository is unsigned (HTTPS only). Add secret APT_SIGNING_KEY to sign it."
+                  fi
+
                   DEB=$(bash extras/scripts/build-deb.sh "${VERSION}" .)
                   cp "${DEB}" csf-firewall.deb
                   echo "file=${DEB#./}" >> "$GITHUB_OUTPUT"
@@ -260,9 +279,14 @@ jobs:
               if: inputs.DRAFT != true && inputs.PRERELEASE != true && !contains(steps.version.outputs.version, '-')
               env:
                   VERSION: ${{ steps.version.outputs.version }}
+                  DEB: ${{ steps.deb.outputs.file }}
+                  APT_SIGNING_KEY: ${{ secrets.APT_SIGNING_KEY }}
               run: |
                   rm -rf dist && mkdir -p dist/csf
                   cp csf.tgz csf.zip dist/
+
+                  # APT repository for "apt-get upgrade" (see extras/scripts/build-apt-repo.sh)
+                  bash extras/scripts/build-apt-repo.sh dist/apt "${DEB}"
                   printf '%s\n' "${VERSION}" > dist/csf/version.txt
                   for f in changelog.txt install.txt readme.txt; do
                       [ -f "src/$f" ] && cp "src/$f" "dist/csf/$f"
@@ -278,3 +302,4 @@ jobs:
                   git push -f "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git" dist:dist
 
                   echo "Update source now serves ${VERSION}: https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/dist/csf/version.txt" >> "$GITHUB_STEP_SUMMARY"
+                  echo "APT repository now serves ${VERSION}: https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/dist/apt/" >> "$GITHUB_STEP_SUMMARY"
