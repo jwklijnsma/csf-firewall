@@ -3,6 +3,7 @@
 #   @desc               builds a Debian/Ubuntu .deb package of CSF
 #   @usage              extras/scripts/build-deb.sh <version> [output-dir]
 #                       extras/scripts/build-deb.sh 15.11.1 dist/
+#                       CSF_SOURCE_ROOT=/path/to/checkout extras/scripts/build-deb.sh 15.11 dist/
 #
 #   @layout             The package ships the release tree in /usr/share/csf-firewall/csf and
 #                       runs the regular CSF installer (install.sh) from postinst. That keeps
@@ -25,6 +26,10 @@ VERSION="${1:?usage: $0 <version> [output-dir]}"
 OUTDIR="${2:-.}"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
+# CSF_SOURCE_ROOT packages another checkout (e.g. an older release tag) with this script
+ROOT="$(cd "${CSF_SOURCE_ROOT:-${ROOT}}" && pwd)"
+[ -f "${ROOT}/src/csf.pl" ] || { echo "error: no CSF source in ${ROOT}" >&2; exit 1; }
 PKG="csf-firewall"
 
 # Debian versions sort "~" before anything, so 15.11-rc.1 → 15.11~rc.1 (older than 15.11)

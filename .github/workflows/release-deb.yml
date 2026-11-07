@@ -1,0 +1,178 @@
+# #
+#   @type               github workflow
+#   @desc               makes sure every GitHub release has a Debian/Ubuntu .deb attached
+#
+#   @triggers           release published   any release made outside "Make Release" (GitHub web UI,
+#                                           gh release create, other workflows with a PAT). Releases
+#                                           from "Make Release" already carry the .deb and are skipped.
+#                       workflow_dispatch   TAG = one release, or empty = every release without a .deb
+#
+#   @builds             the .deb from the release's own tag, using the packaging script from main.
+#                       The newest stable release also refreshes the APT repository (dist/apt), so
+#                       "apt-get upgrade" gets it.
+# #
+
+name: '📦 Release › Attach .deb'
+run-name: "📦 Release › Attach .deb ${{ github.event.release.tag_name || inputs.TAG || '(all missing)' }}"
+
+on:
+    release:
+        types: [published]
+    workflow_dispatch:
+        inputs:
+            TAG:
+                description:        '🏷️ Release tag (empty = every release without a .deb)'
+                required:           false
+                default:            ''
+                type:               string
+
+permissions:
+    contents: write
+
+concurrency:
+    group: release-deb
+    cancel-in-progress: false
+
+jobs:
+    deb:
+        name: '📦 Build & attach .deb'
+        runs-on: ubuntu-latest
+
+        steps:
+
+            - name: '✅ Checkout packaging scripts (main)'
+              uses: actions/checkout@v4.4.0
+              with:
+                  ref: main
+                  path: tools
+                  fetch-depth: 0
+
+            - name: '🧪 Install Dependencies'
+              run: |
+                  sudo apt-get -qq update
+                  sudo apt-get -qq install -y dpkg-dev lintian apt-utils >/dev/null
+
+            - name: '🏷️ Select releases'
+              id: select
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  EVENT_TAG: ${{ github.event.release.tag_name }}
+                  INPUT_TAG: ${{ inputs.TAG }}
+              run: |
+                  if [ -n "${EVENT_TAG}" ]; then
+                      CANDIDATES="${EVENT_TAG}"
+                  elif [ -n "${INPUT_TAG}" ]; then
+                      CANDIDATES="${INPUT_TAG}"
+                  else
+                      CANDIDATES=$(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --paginate --jq '.[] | select(.draft == false) | .tag_name')
+                  fi
+
+                  TAGS=""
+                  for TAG in ${CANDIDATES}; do
+                      HAS=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '[.assets[].name | select(endswith(".deb"))] | length')
+                      if [ "${HAS}" = "0" ]; then
+                          TAGS="${TAGS} ${TAG}"
+                      else
+                          echo "${TAG}: already has a .deb, skipping"
+                      fi
+                  done
+
+                  TAGS="$(echo ${TAGS})"
+                  echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
+                  echo "Building .deb for: ${TAGS:-nothing}"
+
+            - name: '📦 Build, test and attach'
+              if: steps.select.outputs.tags != ''
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  TAGS: ${{ steps.select.outputs.tags }}
+                  APT_SIGNING_KEY: ${{ secrets.APT_SIGNING_KEY }}
+              run: |
+                  set -euo pipefail
+                  export DEBIAN_FRONTEND=noninteractive
+
+                  if [ -n "${APT_SIGNING_KEY}" ]; then
+                      export GNUPGHOME="$(mktemp -d)"
+                      printf '%s\n' "${APT_SIGNING_KEY}" | gpg --batch --quiet --import
+                      gpg --batch --export > "${RUNNER_TEMP}/csf-firewall.gpg"
+                      rm -rf "${GNUPGHOME}"; unset GNUPGHOME
+                      export APT_KEYRING="${RUNNER_TEMP}/csf-firewall.gpg"
+                  fi
+
+                  mkdir -p out
+                  echo "## 📦 Attached .deb packages" >> "$GITHUB_STEP_SUMMARY"
+
+                  for TAG in ${TAGS}; do
+                      echo "::group::${TAG}"
+                      VERSION="${TAG#v}"
+
+                      git -C tools worktree add -q --detach "${RUNNER_TEMP}/src-${TAG}" "refs/tags/${TAG}"
+                      DEB=$(CSF_SOURCE_ROOT="${RUNNER_TEMP}/src-${TAG}" bash tools/extras/scripts/build-deb.sh "${VERSION}" out)
+                      lintian --fail-on error "${DEB}"
+
+                      # Install / purge on the runner before attaching anything
+                      sudo -E apt-get install -y -qq "./${DEB}"
+                      sudo /usr/sbin/csf -v
+                      sudo -E apt-get purge -y -qq csf-firewall
+                      sudo test ! -e /usr/sbin/csf
+
+                      cp "${DEB}" out/csf-firewall.deb
+                      gh release upload "${TAG}" "${DEB}" out/csf-firewall.deb --clobber -R "${GITHUB_REPOSITORY}"
+
+                      # Add the .deb to SHA256SUMS when the release has one
+                      rm -f SHA256SUMS
+                      if gh release download "${TAG}" -p SHA256SUMS -R "${GITHUB_REPOSITORY}" 2>/dev/null; then
+                          grep -v '\.deb$' SHA256SUMS > SHA256SUMS.new || true
+                          ( cd out && sha256sum "$(basename "${DEB}")" csf-firewall.deb ) >> SHA256SUMS.new
+                          mv SHA256SUMS.new SHA256SUMS
+                          gh release upload "${TAG}" SHA256SUMS --clobber -R "${GITHUB_REPOSITORY}"
+                      fi
+
+                      echo "- ${TAG}: $(basename "${DEB}")" >> "$GITHUB_STEP_SUMMARY"
+                      rm -f out/csf-firewall.deb
+                      echo "::endgroup::"
+                  done
+
+            # #
+            #   Keep the APT repository on the newest stable release
+            # #
+
+            - name: '🌐 Refresh APT repository'
+              if: steps.select.outputs.tags != ''
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  TAGS: ${{ steps.select.outputs.tags }}
+                  APT_SIGNING_KEY: ${{ secrets.APT_SIGNING_KEY }}
+              run: |
+                  set -euo pipefail
+                  LATEST=$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name)
+
+                  case " ${TAGS} " in
+                      *" ${LATEST} "*) ;;
+                      *) echo "Newest stable release is ${LATEST}; APT repository unchanged."; exit 0 ;;
+                  esac
+
+                  DEB="out/csf-firewall_$(printf '%s' "${LATEST#v}" | sed 's/-/~/')_all.deb"
+                  test -f "${DEB}"
+
+                  REPO_URL="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+                  if git ls-remote --exit-code "${REPO_URL}" refs/heads/dist >/dev/null; then
+                      git clone -q --depth 1 --branch dist "${REPO_URL}" dist
+                  else
+                      git init -q -b dist dist
+                  fi
+
+                  rm -rf dist/apt
+                  bash tools/extras/scripts/build-apt-repo.sh dist/apt "${DEB}"
+
+                  cd dist
+                  git config user.name  "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git add -A
+                  if git diff --cached --quiet; then
+                      echo "APT repository already up to date"
+                  else
+                      git commit -q -m "apt: ${LATEST}"
+                      git push -q "${REPO_URL}" HEAD:dist
+                      echo "APT repository now serves ${LATEST}" >> "$GITHUB_STEP_SUMMARY"
+                  fi
