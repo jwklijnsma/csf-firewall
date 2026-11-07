@@ -1,0 +1,99 @@
+# #
+#   @type               github workflow
+#   @desc               makes a release once a month when main has changes since the last release
+#
+#   @schedule           the 28th of every month, so servers pick it up with their monthly
+#                       csf-firewall-upgrade.timer on the 1st
+#
+#   @version            upstream version (src/version.txt) newer than the last tag → that version
+#                       otherwise                                                  → last tag + 1 (15.11.3 → 15.11.4)
+#
+#   @skips              no changes to what the package contains (src/, README.md, LICENSE.md,
+#                       packaging scripts) since the last release → no release that month.
+#                       Run manually with FORCE to release anyway.
+# #
+
+name: '📅 Release › Monthly'
+run-name: '📅 Release › Monthly'
+
+on:
+    schedule:
+        - cron: '41 5 28 * *'       # 28th of every month, 05:41 UTC
+    workflow_dispatch:
+        inputs:
+            FORCE:
+                description:        '🔁 Release even when nothing changed since the last release'
+                required:           true
+                default:            false
+                type:               boolean
+
+permissions:
+    contents: read
+    actions: write
+
+concurrency:
+    group: release-monthly
+    cancel-in-progress: false
+
+jobs:
+    monthly:
+        name: '📅 Monthly release'
+        runs-on: ubuntu-latest
+
+        steps:
+
+            - name: '✅ Checkout'
+              uses: actions/checkout@v4.4.0
+              with:
+                  ref: main
+                  fetch-depth: 0
+
+            - name: '🏷️ Decide version'
+              id: version
+              env:
+                  FORCE: ${{ inputs.FORCE }}
+              run: |
+                  git fetch -q --tags origin
+                  LATEST=$(git tag -l | grep -E '^[0-9]+(\.[0-9]+)+$' | sort -V | tail -1)
+                  UPSTREAM=$(head -n1 src/version.txt | xargs)
+
+                  if [ -n "${LATEST}" ]; then
+                      CHANGES=$(git log --oneline "${LATEST}..HEAD" -- src README.md LICENSE.md extras/scripts/build-deb.sh extras/scripts/build-apt-repo.sh | wc -l)
+                  else
+                      CHANGES=1
+                  fi
+                  echo "Last release: ${LATEST:-none} | packaged changes since: ${CHANGES}"
+
+                  if [ "${CHANGES}" = "0" ] && [ "${FORCE}" != "true" ]; then
+                      echo "release=false" >> "$GITHUB_OUTPUT"
+                      echo "No changes since ${LATEST}; no release this month." >> "$GITHUB_STEP_SUMMARY"
+                      exit 0
+                  fi
+
+                  newer() { [ "$1" != "$2" ] && [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | tail -1)" = "$1" ]; }
+
+                  if [ -z "${LATEST}" ] || newer "${UPSTREAM}" "${LATEST}"; then
+                      NEXT="${UPSTREAM}"
+                  else
+                      IFS=. read -r a b c <<< "${LATEST}"
+                      NEXT="${a}.${b}.$(( ${c:-0} + 1 ))"
+                  fi
+
+                  echo "release=true" >> "$GITHUB_OUTPUT"
+                  echo "next=${NEXT}" >> "$GITHUB_OUTPUT"
+                  {
+                      echo "## 📅 Monthly release ${NEXT}"
+                      echo "Changes since ${LATEST:-the beginning}:"
+                      echo '```'
+                      git log --oneline "${LATEST:+${LATEST}..}HEAD" -- src README.md LICENSE.md extras/scripts | head -50
+                      echo '```'
+                  } >> "$GITHUB_STEP_SUMMARY"
+
+            - name: '📦 Start release'
+              if: steps.version.outputs.release == 'true'
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  NEXT: ${{ steps.version.outputs.next }}
+              run: |
+                  gh workflow run release-fork.yml --ref main -f VERSION="${NEXT}" -f PRERELEASE=false -f DRAFT=false
+                  echo "Started Make Release ${NEXT}"

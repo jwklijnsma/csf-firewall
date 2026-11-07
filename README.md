@@ -394,6 +394,7 @@ sudo apt install ./csf-firewall.deb
 After installing, CSF is in `TESTING` mode. Edit `/etc/csf/csf.conf`, set `TESTING = "0"` and run `sudo csf -ra`.
 
 - Updates: the package adds the csf-firewall APT repository, so new releases arrive with your normal `sudo apt-get update && sudo apt-get upgrade`. Your settings in `/etc/csf/csf.conf` are kept.
+- Monthly automatic upgrade: the `csf-firewall-upgrade.timer` upgrades the package once a month (on the 1st, with a random delay of up to 6 hours). Check it with `systemctl list-timers csf-firewall-upgrade.timer` and see results with `journalctl -u csf-firewall-upgrade`. To turn it off, set `AUTO_UPGRADE="no"` in `/etc/default/csf-firewall` or run `sudo systemctl disable --now csf-firewall-upgrade.timer`.
 - `sudo apt remove csf-firewall` stops and disables CSF but keeps `/etc/csf`.
 - `sudo apt purge csf-firewall` removes CSF completely, including `/etc/csf`.
 

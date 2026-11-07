@@ -120,6 +120,99 @@ echo "csf-firewall: package-installs-apt-sources [etc/apt/sources.list.d/csf-fir
 chmod 0644 "${PKGROOT}/usr/share/lintian/overrides/csf-firewall"
 
 # #
+#   Monthly automatic upgrade (systemd timer)
+#
+#   csf-firewall-upgrade.timer runs once a month (random delay up to 6h, catches up after downtime)
+#   and upgrades only this package from its own APT source. Settings in csf.conf are kept.
+#   Opt out: AUTO_UPGRADE="no" in /etc/default/csf-firewall, or
+#            systemctl disable --now csf-firewall-upgrade.timer
+# #
+
+mkdir -p "${PKGROOT}/usr/lib/csf-firewall" "${PKGROOT}/usr/lib/systemd/system" "${PKGROOT}/etc/default"
+
+cat > "${PKGROOT}/etc/default/csf-firewall" <<'CFGEOF'
+# csf-firewall package settings
+
+# Upgrade csf-firewall automatically once a month from its APT repository
+# (csf-firewall-upgrade.timer). Set to "no" to only upgrade manually with apt.
+AUTO_UPGRADE="yes"
+CFGEOF
+
+cat > "${PKGROOT}/usr/lib/csf-firewall/auto-upgrade" <<'UPGEOF'
+#!/bin/sh
+# Upgrades the csf-firewall package from its own APT source. Run by csf-firewall-upgrade.timer.
+set -eu
+
+[ -r /etc/default/csf-firewall ] && . /etc/default/csf-firewall
+case "${AUTO_UPGRADE:-yes}" in
+    yes|YES|1|true) ;;
+    *) echo "csf-firewall: automatic upgrade disabled in /etc/default/csf-firewall"; exit 0 ;;
+esac
+
+SOURCE=/etc/apt/sources.list.d/csf-firewall.sources
+if [ ! -f "${SOURCE}" ]; then
+    echo "csf-firewall: ${SOURCE} is missing, nothing to upgrade from"
+    exit 0
+fi
+
+export DEBIAN_FRONTEND=noninteractive
+BEFORE=$(dpkg-query -W -f='${Version}' csf-firewall 2>/dev/null || echo none)
+
+# Refresh only the csf-firewall source; keep the other repositories' package lists as they are
+PARTS=$(mktemp -d)
+trap 'rm -rf "${PARTS}"' EXIT
+cp "${SOURCE}" "${PARTS}/"
+apt-get update -qq \
+    -o Dir::Etc::sourcelist=/dev/null \
+    -o Dir::Etc::sourceparts="${PARTS}" \
+    -o APT::Get::List-Cleanup=0
+
+# Upgrade only this package; keep locally changed config files
+apt-get install -y -qq --only-upgrade \
+    -o DPkg::Lock::Timeout=600 \
+    -o Dpkg::Options::=--force-confdef \
+    -o Dpkg::Options::=--force-confold \
+    csf-firewall
+
+AFTER=$(dpkg-query -W -f='${Version}' csf-firewall 2>/dev/null || echo none)
+if [ "${BEFORE}" = "${AFTER}" ]; then
+    echo "csf-firewall: already up to date (${AFTER})"
+else
+    echo "csf-firewall: upgraded ${BEFORE} -> ${AFTER}"
+fi
+UPGEOF
+chmod 0755 "${PKGROOT}/usr/lib/csf-firewall/auto-upgrade"
+
+cat > "${PKGROOT}/usr/lib/systemd/system/csf-firewall-upgrade.service" <<'UNITEOF'
+[Unit]
+Description=Upgrade csf-firewall from its APT repository
+Documentation=https://github.com/jwklijnsma/csf-firewall
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/csf-firewall/auto-upgrade
+UNITEOF
+
+cat > "${PKGROOT}/usr/lib/systemd/system/csf-firewall-upgrade.timer" <<'UNITEOF'
+[Unit]
+Description=Monthly upgrade of csf-firewall
+Documentation=https://github.com/jwklijnsma/csf-firewall
+
+[Timer]
+OnCalendar=monthly
+RandomizedDelaySec=6h
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+UNITEOF
+chmod 0644 "${PKGROOT}/usr/lib/systemd/system/csf-firewall-upgrade.service" \
+           "${PKGROOT}/usr/lib/systemd/system/csf-firewall-upgrade.timer" \
+           "${PKGROOT}/etc/default/csf-firewall"
+
+# #
 #   Control
 # #
 
@@ -169,6 +262,15 @@ case "$1" in
             fi
         fi
 
+        # Monthly upgrade timer: enable on first install and on upgrade from versions before it
+        # existed (<= 15.11.3). Later upgrades leave it as the admin set it.
+        if command -v systemctl >/dev/null 2>&1 && [ -d /run/systemd/system ]; then
+            systemctl daemon-reload >/dev/null 2>&1 || true
+            if [ -z "$2" ] || dpkg --compare-versions "$2" le 15.11.3; then
+                systemctl enable --now csf-firewall-upgrade.timer >/dev/null 2>&1 || true
+            fi
+        fi
+
         if grep -Eq '^[[:space:]]*TESTING[[:space:]]*=[[:space:]]*"1"' /etc/csf/csf.conf 2>/dev/null; then
             echo ""
             echo "  csf-firewall: CSF is in TESTING mode. Edit /etc/csf/csf.conf, set TESTING = \"0\","
@@ -194,6 +296,7 @@ case "$1" in
         if command -v systemctl >/dev/null 2>&1 && [ -d /run/systemd/system ]; then
             systemctl stop lfd.service csf.service >/dev/null 2>&1 || true
             systemctl disable lfd.service csf.service >/dev/null 2>&1 || true
+            systemctl disable --now csf-firewall-upgrade.timer >/dev/null 2>&1 || true
         fi
         # Flush CSF rules so the server is not left with a half-configured firewall
         if [ -x /usr/sbin/csf ]; then
@@ -233,7 +336,7 @@ EOF
 
 chmod 0755 "${PKGROOT}/DEBIAN/postinst" "${PKGROOT}/DEBIAN/prerm" "${PKGROOT}/DEBIAN/postrm"
 
-echo "/etc/apt/sources.list.d/csf-firewall.sources" > "${PKGROOT}/DEBIAN/conffiles"
+printf '%s\n' /etc/apt/sources.list.d/csf-firewall.sources /etc/default/csf-firewall > "${PKGROOT}/DEBIAN/conffiles"
 
 # #
 #   Build
